@@ -1,5 +1,27 @@
-name := "DataChefAnalytics"
+import Settings._
+import Dependencies._
+import Libraries._
 
-version := "0.1"
+lazy val `campaigns-api` = project
+  .in(file("campaigns-api"))
+  .settings(commonSettings)
+  .settings(
+    name := "campaigns-api",
+    libraryDependencies ++= Seq(
+      zio,
+      zioInteropCats,
+      circe,
+      logback,
+      scalatest
+    ) ++ http4sModules ++ cirisModules ++ tapirModules
+  )
 
-scalaVersion := "2.13.1"
+lazy val root = (project in file("."))
+  .aggregate(`campaigns-api`)
+  .dependsOn(`campaigns-api`)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "data-chef-analytics"
+  )
+
+addCompilerPlugin("org.typelevel" %% "kind-projector" % Versions.kindProjector cross CrossVersion.full)
