@@ -14,7 +14,8 @@ lazy val `campaigns-api` = project
       scalaLogging,
       logback,
       scalatest
-    ) ++ http4sModules ++ cirisModules ++ tapirModules
+    ) ++ http4sModules ++ cirisModules ++ tapirModules,
+    addCompilerPlugin(kindProjectorPlugin cross CrossVersion.full)
   )
 
 lazy val root = (project in file("."))
@@ -24,5 +25,3 @@ lazy val root = (project in file("."))
   .settings(
     name := "data-chef-analytics"
   )
-
-addCompilerPlugin("org.typelevel" %% "kind-projector" % Versions.kindProjector cross CrossVersion.full)

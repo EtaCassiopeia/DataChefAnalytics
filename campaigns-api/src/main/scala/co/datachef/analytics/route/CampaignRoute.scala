@@ -13,6 +13,7 @@ import tapir.json.circe._
 import tapir.model.StatusCodes
 import tapir.server.http4s._
 import tapir.server.{DecodeFailureHandling, ServerDefaults}
+import zio.interop.catz._
 import zio.{RIO, ZIO}
 
 class CampaignRoute[R <: CampaignRepository with LoggerService] extends Http4sDsl[RIO[R, *]] {

@@ -49,5 +49,7 @@ object Dependencies {
     val logback = "ch.qos.logback"                                     % "logback-classic" % Versions.logback
 
     val scalatest = "org.scalatest" %% "scalatest" % Versions.scalaTest % "test"
+
+    val kindProjectorPlugin = "org.typelevel" %% "kind-projector" % Versions.kindProjector
   }
 }
