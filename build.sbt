@@ -11,6 +11,7 @@ lazy val `campaigns-api` = project
       zio,
       zioInteropCats,
       circe,
+      scalaLogging,
       logback,
       scalatest
     ) ++ http4sModules ++ cirisModules ++ tapirModules
@@ -19,7 +20,7 @@ lazy val `campaigns-api` = project
 lazy val root = (project in file("."))
   .aggregate(`campaigns-api`)
   .dependsOn(`campaigns-api`)
-  .settings(commonSettings: _*)
+  .settings(commonSettings)
   .settings(
     name := "data-chef-analytics"
   )

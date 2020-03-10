@@ -6,7 +6,7 @@ object Settings {
   lazy val commonSettings =
     compilerSettings ++
       sbtSettings ++ Seq(
-      organization := "com.github.etacassiopeia"
+      organization := "co.datachef"
     )
 
   lazy val compilerSettings =
