@@ -1,7 +1,7 @@
-package model.config
+package co.datachef.loader.model.config
 
 import ciris.api.Id
-import ciris.{env, loadConfig, ConfigResult}
+import ciris.{ConfigResult, env, loadConfig}
 
 final case class ApplicationConfig(
   kafkaConfig: KafkaConfig

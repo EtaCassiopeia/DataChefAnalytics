@@ -15,6 +15,7 @@ object Dependencies {
     val kindProjector = "0.11.0"
     val kafka = "2.4.0"
     val zioConfig = "1.0.0-RC12"
+    val jedis = "3.2.0"
   }
 
   object Libraries {
@@ -49,6 +50,7 @@ object Dependencies {
     )
 
     val kafkaClient = "org.apache.kafka" % "kafka-clients" % Versions.kafka
+    val jedis =  "redis.clients" % "jedis" % Versions.jedis
 
     val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging
     val logback = "ch.qos.logback"                                     % "logback-classic" % Versions.logback

@@ -1,4 +1,4 @@
-package model
+package co.datachef.loader.model
 
 import cats.implicits._
 

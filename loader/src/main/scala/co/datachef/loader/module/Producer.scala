@@ -1,11 +1,11 @@
-package module
+package co.datachef.loader.module
 
 import java.util.Properties
 
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.StringSerializer
-import zio.blocking.{Blocking, _}
 import zio._
+import zio.blocking.{Blocking, _}
 
 case class ProducerSettings(private val broker: String) {
 

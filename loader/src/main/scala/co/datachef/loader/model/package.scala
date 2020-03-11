@@ -1,3 +1,5 @@
+package co.datachef.loader
+
 package object model {
   type BannerID = String
   type CampaignID = String
