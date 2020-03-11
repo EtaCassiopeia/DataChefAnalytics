@@ -13,10 +13,13 @@ object Dependencies {
     val tapir = "0.11.9"
     val scalaTest = "3.0.8"
     val kindProjector = "0.11.0"
+    val kafka = "2.4.0"
+    val zioConfig = "1.0.0-RC12"
   }
 
   object Libraries {
     val zio = "dev.zio" %% "zio"                         % Versions.zio
+    val zioStreams = "dev.zio" %% "zio-streams"          % Versions.zio
     val zioInteropCats = "dev.zio" %% "zio-interop-cats" % Versions.zioInteropCats
 
     val http4sModules: Seq[ModuleID] = Seq(
@@ -44,6 +47,8 @@ object Dependencies {
       "com.softwaremill.tapir" %% "tapir-openapi-circe-yaml" % Versions.tapir,
       "com.softwaremill.tapir" %% "tapir-json-circe"         % Versions.tapir
     )
+
+    val kafkaClient = "org.apache.kafka" % "kafka-clients" % Versions.kafka
 
     val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging
     val logback = "ch.qos.logback"                                     % "logback-classic" % Versions.logback

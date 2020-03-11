@@ -3,7 +3,6 @@
 
 ### SBT
 
-dist/*
 target/
 project/boot/
 project/plugins/project/
@@ -14,4 +13,3 @@ project/plugins/project/
 ### Scala
 *.class
 *.log
-
