@@ -29,7 +29,7 @@ object Producer {
   }
 
   final class Live(
-    p: KafkaProducer[String, String]
+    kafkaProducer: KafkaProducer[String, String]
   ) extends Service {
 
     override def produce(record: ProducerRecord[String, String]): RIO[Blocking, Task[RecordMetadata]] =
@@ -37,7 +37,7 @@ object Producer {
         done <- Promise.make[Throwable, RecordMetadata]
         runtime <- ZIO.runtime[Blocking]
         _ <- effectBlocking {
-          p.send(
+          kafkaProducer.send(
             record,
             (metadata: RecordMetadata, err: Exception) => {
               if (err != null) runtime.unsafeRun(done.fail(err))
@@ -49,9 +49,9 @@ object Producer {
         }
       } yield done.await
 
-    override def flush: RIO[Blocking, Unit] = effectBlocking(p.flush())
+    override def flush: RIO[Blocking, Unit] = effectBlocking(kafkaProducer.flush())
 
-    private[Producer] def close: UIO[Unit] = UIO(p.close())
+    private[Producer] def close: UIO[Unit] = UIO(kafkaProducer.close())
   }
 
   def live(): ZLayer[Has[ProducerSettings], Throwable, Producer] =

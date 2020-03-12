@@ -5,8 +5,6 @@ import cats.effect.ExitCode
 import co.datachef.analytics.model.config.ApplicationConfig
 import co.datachef.analytics.module.campaign.CampaignRepository
 import co.datachef.analytics.module.campaign.CampaignRepository._
-import co.datachef.analytics.module.logger.LoggerService
-import co.datachef.analytics.module.logger.LoggerService._
 import co.datachef.analytics.route.CampaignRoute
 import org.http4s.implicits._
 import org.http4s.server.Router
@@ -19,9 +17,10 @@ import zio._
 import zio.clock.Clock
 import zio.console.{putStrLn, Console}
 import zio.interop.catz._
+import zio.logging.Logging
 
 object Main extends App {
-  type AppEnvironment = Clock with Console with CampaignRepository with LoggerService
+  type AppEnvironment = Clock with Console with CampaignRepository with Logging
 
   private val campaignRoute = new CampaignRoute[AppEnvironment]
   private val yaml = campaignRoute.getEndPoints.toOpenAPI("Campaign", "1.0").toYaml
@@ -44,9 +43,8 @@ object Main extends App {
           .drain
       }
       campaignRepo = CampaignRepository.live
-      loggerSrv = LoggerService.live
       _ <- server.provideLayer {
-        Clock.live ++ Console.live ++ loggerSrv ++ campaignRepo
+        Clock.live ++ Console.live ++ campaignRepo ++ Logging.console((_, logEntry) => logEntry)
       }
     } yield ())
       .foldM(failure = err => putStrLn(s"Execution failed with: $err") *> ZIO.succeed(1), success = _ => ZIO.succeed(0))

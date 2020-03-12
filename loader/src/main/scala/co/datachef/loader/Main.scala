@@ -4,14 +4,14 @@ import java.nio.file.{Files, Paths}
 
 import co.datachef.loader.model.config.ApplicationConfig
 import co.datachef.loader.model.{FileName, RowParser, TimeSlot}
-import co.datachef.loader.module.Producer.{Producer, produce}
+import co.datachef.loader.module.Producer.{produce, Producer}
 import co.datachef.loader.module.{Producer, ProducerSettings}
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.apache.kafka.clients.producer.ProducerRecord
 import zio.blocking.Blocking
 import zio.clock.Clock
-import zio.console.{Console, putStrLn}
+import zio.console.{putStrLn, Console}
 import zio.{App, IO, ZIO, ZLayer}
 
 import scala.util.Try

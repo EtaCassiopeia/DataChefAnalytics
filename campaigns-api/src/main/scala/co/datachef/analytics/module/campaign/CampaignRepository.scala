@@ -1,6 +1,7 @@
 package co.datachef.analytics.module.campaign
 
-import co.datachef.analytics.model.{Banner, ExpectedFailure}
+import co.datachef.analytics.model.ExpectedFailure
+import co.datachef.shared.model.Banner
 import zio.{Has, Ref, ZIO, ZLayer}
 
 object CampaignRepository {

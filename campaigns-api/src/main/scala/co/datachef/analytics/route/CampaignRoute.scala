@@ -3,7 +3,7 @@ package co.datachef.analytics.route
 import co.datachef.analytics.implicits.Throwable._
 import co.datachef.analytics.model._
 import co.datachef.analytics.module.campaign.CampaignRepository._
-import co.datachef.analytics.module.logger.LoggerService._
+import co.datachef.shared.model.Banner
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
@@ -14,9 +14,11 @@ import tapir.model.StatusCodes
 import tapir.server.http4s._
 import tapir.server.{DecodeFailureHandling, ServerDefaults}
 import zio.interop.catz._
+import zio.logging.Logging
 import zio.{RIO, ZIO}
+import zio.logging._
 
-class CampaignRoute[R <: CampaignRepository with LoggerService] extends Http4sDsl[RIO[R, *]] {
+class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[R, *]] {
 
   private implicit val customServerOptions: Http4sServerOptions[RIO[R, *]] = Http4sServerOptions
     .default[RIO[R, *]]
@@ -51,7 +53,7 @@ class CampaignRoute[R <: CampaignRepository with LoggerService] extends Http4sDs
 
   private def getBanners(campaignId: Long): ZIO[R, ExpectedFailure, List[Banner]] = {
     for {
-      _ <- debug(s"id: $campaignId")
+      _ <- logDebug(s"id: $campaignId")
       banners <- banners(campaignId)
       u <- banners match {
         case None => ZIO.fail(NotFoundFailure(s"Can not find a campaign by $campaignId"))

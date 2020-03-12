@@ -3,8 +3,9 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val zio = "1.0.0-RC18-1"
-    val zioInteropCats = "2.0.0.0-RC11"
+    val zio = "1.0.0-RC18-2"
+    val zioInteropCats = "2.0.0.0-RC12"
+    val zioLogging = "0.2.3"
     val http4s = "0.21.0-M5"
     val circe = "0.12.3"
     val scalaLogging = "3.9.2"
@@ -16,12 +17,14 @@ object Dependencies {
     val kafka = "2.4.0"
     val zioConfig = "1.0.0-RC12"
     val jedis = "3.2.0"
+    val redisson = "3.12.3"
   }
 
   object Libraries {
     val zio = "dev.zio" %% "zio"                         % Versions.zio
     val zioStreams = "dev.zio" %% "zio-streams"          % Versions.zio
     val zioInteropCats = "dev.zio" %% "zio-interop-cats" % Versions.zioInteropCats
+    val zioLogging = "dev.zio" %% "zio-logging"          % Versions.zioLogging
 
     val http4sModules: Seq[ModuleID] = Seq(
       "org.http4s" %% "http4s-core"         % Versions.http4s,
@@ -50,10 +53,18 @@ object Dependencies {
     )
 
     val kafkaClient = "org.apache.kafka" % "kafka-clients" % Versions.kafka
-    val jedis =  "redis.clients" % "jedis" % Versions.jedis
+    val jedis = "redis.clients"          % "jedis"         % Versions.jedis
+    val redisson = "org.redisson"        % "redisson"      % Versions.redisson
 
+    val zioLoggingSlf4j = "dev.zio" %% "zio-logging-slf4j"             % Versions.zioLogging
     val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging
     val logback = "ch.qos.logback"                                     % "logback-classic" % Versions.logback
+
+    val logging = Seq(
+      zioLogging,
+      zioLoggingSlf4j,
+      logback
+    )
 
     val scalatest = "org.scalatest" %% "scalatest" % Versions.scalaTest % "test"
 

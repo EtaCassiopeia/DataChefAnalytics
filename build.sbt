@@ -2,21 +2,27 @@ import Settings._
 import Dependencies._
 import Libraries._
 
+lazy val shared = project.in(file("shared")).settings(commonSettings)
+  .settings(
+    name := "shared",
+    libraryDependencies ++= Seq (
+      zio,
+      redisson,
+      scalatest
+    ) ++ logging
+  )
+
 lazy val `campaigns-api` = project
   .in(file("campaigns-api"))
   .settings(commonSettings)
   .settings(
     name := "campaigns-api",
     libraryDependencies ++= Seq(
-      zio,
       zioInteropCats,
       circe,
-      scalaLogging,
-      logback,
-      scalatest
     ) ++ http4sModules ++ cirisModules ++ tapirModules,
     addCompilerPlugin(kindProjectorPlugin cross CrossVersion.full)
-  )
+  ).dependsOn(shared)
 
 lazy val loader = project
   .in(file("loader"))
@@ -24,18 +30,15 @@ lazy val loader = project
   .settings(
     name := "loader",
     libraryDependencies ++= Seq (
-      zio,
       zioStreams,
-      logback,
       circe,
       kafkaClient,
-      scalatest
     ) ++ cirisModules
-  )
+  ).dependsOn(shared)
 
 lazy val root = (project in file("."))
-  .aggregate(`campaigns-api`,loader)
-  .dependsOn(`campaigns-api`,loader)
+  .aggregate(shared,`campaigns-api`,loader)
+  .dependsOn(shared,`campaigns-api`,loader)
   .settings(commonSettings)
   .settings(
     name := "data-chef-analytics"

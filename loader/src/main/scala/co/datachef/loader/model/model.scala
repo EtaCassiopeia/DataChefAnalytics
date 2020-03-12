@@ -1,6 +1,7 @@
 package co.datachef.loader.model
 
 import cats.implicits._
+import co.datachef.shared.model.{BannerID, CampaignID, ClickID, ConversionID, Revenue}
 
 import scala.util.Try
 

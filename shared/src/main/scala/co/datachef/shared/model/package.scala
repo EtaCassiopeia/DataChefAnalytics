@@ -1,9 +1,10 @@
-package co.datachef.loader
+package co.datachef.shared
 
 package object model {
-  type BannerID = String
   type CampaignID = String
+  type BannerID = String
   type ClickID = String
   type ConversionID = String
   type Revenue = Double
+  type TimeSlot = Int
 }
