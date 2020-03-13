@@ -2,19 +2,19 @@ package co.datachef.loader.module
 
 import java.util.Properties
 
+import co.datachef.loader.model.Record
+import co.datachef.loader.serde.JSONSerde
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.StringSerializer
 import zio._
 import zio.blocking.{Blocking, _}
+import io.circe.generic.auto._
 
 case class ProducerSettings(private val broker: String) {
 
   def props: Properties = {
     val producerProperties = new Properties()
     producerProperties.put("bootstrap.servers", broker)
-    producerProperties.put("acks", "all")
-    producerProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-    producerProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     producerProperties
   }
 }
@@ -23,16 +23,16 @@ object Producer {
   type Producer = Has[Producer.Service]
 
   trait Service {
-    def produce(record: ProducerRecord[String, String]): RIO[Blocking, Task[RecordMetadata]]
+    def produce(record: ProducerRecord[String, Record]): RIO[Blocking, Task[RecordMetadata]]
 
     def flush: RIO[Blocking, Unit]
   }
 
   final class Live(
-    kafkaProducer: KafkaProducer[String, String]
+    kafkaProducer: KafkaProducer[String, Record]
   ) extends Service {
 
-    override def produce(record: ProducerRecord[String, String]): RIO[Blocking, Task[RecordMetadata]] =
+    override def produce(record: ProducerRecord[String, Record]): RIO[Blocking, Task[RecordMetadata]] =
       for {
         done <- Promise.make[Throwable, RecordMetadata]
         runtime <- ZIO.runtime[Blocking]
@@ -60,11 +60,13 @@ object Producer {
         .accessM[Has[ProducerSettings]] { env =>
           val settings = env.get[ProducerSettings]
           ZIO {
+            import co.datachef.loader.serde.ShapesDerivation._
+
             val props = settings.props
-            val producer = new KafkaProducer[String, String](
+            val producer = new KafkaProducer[String, Record](
               props,
               new StringSerializer(),
-              new StringSerializer()
+              new JSONSerde[Record]()
             )
             new Live(producer)
           }
@@ -72,6 +74,6 @@ object Producer {
         .toManaged(_.close)
     }
 
-  def produce(record: ProducerRecord[String, String]): RIO[Producer with Blocking, Task[RecordMetadata]] =
+  def produce(record: ProducerRecord[String, Record]): RIO[Producer with Blocking, Task[RecordMetadata]] =
     ZIO.accessM(_.get.produce(record))
 }

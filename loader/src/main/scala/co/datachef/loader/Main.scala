@@ -6,8 +6,9 @@ import co.datachef.loader.model.config.ApplicationConfig
 import co.datachef.loader.model.{FileName, RowParser, TimeSlot}
 import co.datachef.loader.module.Producer.{produce, Producer}
 import co.datachef.loader.module.{Producer, ProducerSettings}
-import io.circe.generic.auto._
-import io.circe.syntax._
+//import io.circe.generic.extras.auto._
+//import io.circe.generic.extras.Configuration
+//import io.circe.syntax._
 import org.apache.kafka.clients.producer.ProducerRecord
 import zio.blocking.Blocking
 import zio.clock.Clock
@@ -44,7 +45,7 @@ object Main extends App {
           .flatMap(c => Stream.fromChunk(c))
           .map(rowParser.fromString)
           .collect {
-            case Some(record) => record.asJson.noSpaces
+            case Some(record) => record
           }
           .foreach(record => produce(new ProducerRecord(topicName, record)))
       }

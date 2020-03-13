@@ -2,10 +2,12 @@ import Settings._
 import Dependencies._
 import Libraries._
 
-lazy val shared = project.in(file("shared")).settings(commonSettings)
+lazy val shared = project
+  .in(file("shared"))
+  .settings(commonSettings)
   .settings(
     name := "shared",
-    libraryDependencies ++= Seq (
+    libraryDependencies ++= Seq(
       zio,
       redisson,
       scalatest
@@ -18,27 +20,38 @@ lazy val `campaigns-api` = project
   .settings(
     name := "campaigns-api",
     libraryDependencies ++= Seq(
-      zioInteropCats,
-      circe,
-    ) ++ http4sModules ++ cirisModules ++ tapirModules,
+      zioInteropCats
+    ) ++ http4sModules ++ circeModules ++ cirisModules ++ tapirModules,
     addCompilerPlugin(kindProjectorPlugin cross CrossVersion.full)
-  ).dependsOn(shared)
+  )
+  .dependsOn(shared)
 
 lazy val loader = project
   .in(file("loader"))
   .settings(commonSettings)
   .settings(
     name := "loader",
-    libraryDependencies ++= Seq (
+    libraryDependencies ++= Seq(
       zioStreams,
-      circe,
-      kafkaClient,
-    ) ++ cirisModules
-  ).dependsOn(shared)
+      kafkaClient
+    ) ++ circeModules ++ cirisModules
+  )
+  .dependsOn(shared)
+
+lazy val aggregator = project
+  .in(file("aggregator"))
+  .settings(commonSettings)
+  .settings(
+    name := "aggregator",
+    libraryDependencies ++= Seq(
+      kafkaClient
+    ) ++ logging
+  )
+  .dependsOn(shared,loader)
 
 lazy val root = (project in file("."))
-  .aggregate(shared,`campaigns-api`,loader)
-  .dependsOn(shared,`campaigns-api`,loader)
+  .aggregate(shared, loader, aggregator, `campaigns-api`)
+  .dependsOn(shared, loader, aggregator, `campaigns-api`)
   .settings(commonSettings)
   .settings(
     name := "data-chef-analytics"

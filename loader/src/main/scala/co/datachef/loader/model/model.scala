@@ -1,7 +1,7 @@
 package co.datachef.loader.model
 
 import cats.implicits._
-import co.datachef.shared.model.{BannerID, CampaignID, ClickID, ConversionID, Revenue}
+import co.datachef.shared.model._
 
 import scala.util.Try
 
@@ -14,7 +14,7 @@ sealed trait RowParser[+T] {
 }
 
 object RowParser {
-  def apply[T: RowParser]: RowParser[T] = implicitly[RowParser[T]]
+  def apply[T <: Record: RowParser]: RowParser[T] = implicitly[RowParser[T]]
 
   def fromFileName(fileName: FileName): RowParser[Record] = fileName match {
     case FileName(value) if value.startsWith("clicks") => RowParser[Click]
@@ -23,13 +23,13 @@ object RowParser {
   }
 }
 
-sealed trait Record
+sealed trait Record extends Product with Serializable
 
 case class Impression(bannerId: BannerID, campaignId: CampaignID) extends Record
 
 object Impression {
 
-  implicit object ImpressionRowParser extends RowParser[Impression] {
+  implicit val ImpressionRowParser: RowParser[Impression] = new RowParser[Impression] {
 
     override def fromString(value: String): Option[Impression] = {
       split(value) match {
@@ -46,7 +46,7 @@ case class Click(clickId: ClickID, bannerId: BannerID, campaignId: CampaignID) e
 
 object Click {
 
-  implicit object ClickRowParser extends RowParser[Click] {
+  implicit val ClickRowParser: RowParser[Click] = new RowParser[Click] {
 
     override def fromString(value: String): Option[Click] = {
       split(value) match {
@@ -63,7 +63,7 @@ case class Conversion(conversionId: ConversionID, clickId: ClickID, revenue: Rev
 
 object Conversion {
 
-  implicit object ConversionRowParser extends RowParser[Conversion] {
+  implicit val ConversionRowParser: RowParser[Conversion] = new RowParser[Conversion] {
 
     override def fromString(value: String): Option[Conversion] = {
       split(value) match {
@@ -76,6 +76,21 @@ object Conversion {
     val recordType: String = "conversion"
   }
 }
+
+//object GenericDerivation {
+//  implicit val encodeEvent: Encoder[RawRecord] = Encoder.instance {
+//    case impression @ Impression(_,_) => impression.asJson
+//    case conversion @ Conversion(_,_,_) => conversion.asJson
+//    case click @ Click(_,_,_) => click.asJson
+//  }
+//
+//  implicit val decodeEvent: Decoder[RawRecord] =
+//    List[Decoder[RawRecord]](
+//      Decoder[Impression].widen,
+//      Decoder[Conversion].widen,
+//      Decoder[Click].widen,
+//    ).reduceLeft(_ or _)
+//}
 
 final case class FileName(value: String) extends AnyVal
 
