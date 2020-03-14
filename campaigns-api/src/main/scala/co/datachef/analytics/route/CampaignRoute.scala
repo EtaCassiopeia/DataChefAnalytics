@@ -14,9 +14,8 @@ import tapir.model.StatusCodes
 import tapir.server.http4s._
 import tapir.server.{DecodeFailureHandling, ServerDefaults}
 import zio.interop.catz._
-import zio.logging.Logging
+import zio.logging.{Logging, _}
 import zio.{RIO, ZIO}
-//import zio.logging._
 
 class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[R, *]] {
 
@@ -33,7 +32,7 @@ class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[
     )
 
   private val getBannersEndPoint = endpoint.get
-    .in("campaigns" / path[Long]("campaign id"))
+    .in("campaigns" / path[String]("campaign id"))
     .errorOut(
       oneOf(
         statusMapping(StatusCodes.InternalServerError, jsonBody[InternalServerErrorResponse]),
@@ -43,7 +42,7 @@ class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[
 
   val getRoutes: HttpRoutes[RIO[R, *]] = {
     getBannersEndPoint.toRoutes { campaignId =>
-      handleError(getBanners(campaignId))
+      handleError(getBanners(campaignId, 1))
     }
   }
 
@@ -51,32 +50,21 @@ class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[
     List(getBannersEndPoint)
   }
 
-  private def getBanners(campaignId: Long): ZIO[R, ExpectedFailure, List[Banner]] = {
-    ZIO.fail(NotFoundFailure(s"Can not find a campaign by $campaignId"))
-//    for {
-//      _ <- logDebug(s"id: $campaignId")
-//      banners <- topBannersByRevenue(campaignId,1,10)
-//      u <- banners match {
-//        case None => ZIO.fail(NotFoundFailure(s"Can not find a campaign by $campaignId"))
-//        case Some(s) => ZIO.succeed(s)
-//      }
-//    } yield {
-//      u
-//    }
+  private def getBanners(campaignId: String, timeSlot: Int): RIO[CampaignRepository with Logging, List[Banner]] = {
+    for {
+      _ <- logDebug(s"id: $campaignId")
+      banners <- topBannersByRevenue(campaignId, timeSlot, 10)
+    } yield banners
   }
 
-  private def handleError[A](result: ZIO[R, ExpectedFailure, A]): ZIO[R, Throwable, Either[ErrorResponse, A]] = {
+  private def handleError[A](result: ZIO[R, Throwable, A]): ZIO[R, Throwable, Either[ErrorResponse, A]] =
     result
       .fold(
-        {
-          case DSFailure(t) => Left(InternalServerErrorResponse("Data store failure", t.getMessage, t.getStacktrace))
-          case NotFoundFailure(message) => Left(NotFoundResponse(message))
-        },
+        e => Left(InternalServerErrorResponse("Unexpected errors", "", e.getStacktrace)),
         Right(_)
       )
       .foldCause(
         c => Left(InternalServerErrorResponse("Unexpected errors", "", c.squash.getStacktrace)),
         identity
       )
-  }
 }

@@ -2,7 +2,7 @@ package co.datachef.aggregator
 
 import java.util.Properties
 
-import co.datachef.aggregator.topology.RevenueStreamTopology
+import co.datachef.aggregator.topology.{ClickStreamTopology, ImpressionStreamTopology, RevenueStreamTopology}
 import co.datachef.shared.repository.DataRepository
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.KafkaStreams.State
@@ -18,8 +18,8 @@ object Main extends App {
   type AppEnvironment = Console
 
   def streamConfig(): UIO[Properties] = ZIO.succeed {
-    import org.apache.kafka.streams.StreamsConfig
     import org.apache.kafka.clients.consumer.ConsumerConfig
+    import org.apache.kafka.streams.StreamsConfig
 
     val props: Map[String, AnyRef] = Map(
       StreamsConfig.APPLICATION_ID_CONFIG -> "streams-revenue-click-aggregator",
@@ -46,6 +46,8 @@ object Main extends App {
       rConfig <- redissonConfig
       dataRepository = new DataRepository(Redisson.create(rConfig))
       _ <- RevenueStreamTopology(builder, dataRepository).build()
+      _ <- ClickStreamTopology(builder, dataRepository).build()
+      _ <- ImpressionStreamTopology(builder, dataRepository).build()
       p <- Promise.make[Nothing, String]
       managedStream = Managed.makeEffect {
         val stream = new KafkaStreams(builder.build(), config)

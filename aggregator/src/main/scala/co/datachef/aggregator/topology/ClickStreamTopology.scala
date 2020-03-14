@@ -40,3 +40,9 @@ class ClickStreamTopology(builder: StreamsBuilder, dataRepository: DataRepositor
       }
   }
 }
+
+object ClickStreamTopology {
+
+  def apply(builder: StreamsBuilder, dataRepository: DataRepository): ClickStreamTopology =
+    new ClickStreamTopology(builder, dataRepository)
+}

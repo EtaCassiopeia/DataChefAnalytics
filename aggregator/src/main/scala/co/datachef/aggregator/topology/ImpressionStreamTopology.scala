@@ -23,3 +23,9 @@ class ImpressionStreamTopology(builder: StreamsBuilder, dataRepository: DataRepo
     }
   }
 }
+
+object ImpressionStreamTopology {
+
+  def apply(builder: StreamsBuilder, dataRepository: DataRepository): ImpressionStreamTopology =
+    new ImpressionStreamTopology(builder, dataRepository)
+}
