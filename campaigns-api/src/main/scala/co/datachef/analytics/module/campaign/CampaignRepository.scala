@@ -1,20 +1,55 @@
-package co.datachef.analytics.module.campaign
+package co.datachef.shared.module
 
-import co.datachef.analytics.model.ExpectedFailure
-import co.datachef.shared.model.Banner
-import zio.{Has, Ref, ZIO, ZLayer}
+import co.datachef.shared.model._
+import co.datachef.shared.repository.DataRepository
+import org.redisson.Redisson
+import org.redisson.config.Config
+import zio._
 
 object CampaignRepository {
   type CampaignRepository = Has[CampaignRepository.Service]
 
   trait Service {
-    def banners(campaignId: Long): ZIO[Any, ExpectedFailure, Option[List[Banner]]] = ???
+    def topBannersByRevenue(campaignID: CampaignID, timeSlot: TimeSlot, number: Int): Task[List[Banner]]
+    def topBannersByClick(campaignID: CampaignID, timeSlot: TimeSlot, number: Int): Task[List[Banner]]
+    def bannersByCampaign(campaignID: CampaignID, timeSlot: TimeSlot, number: Int): Task[List[Banner]]
   }
 
-  def ref: ZLayer[Has[Ref[Map[Long, List[Banner]]]], ExpectedFailure, CampaignRepository] = ???
+  final class Live(dataRepository: DataRepository) extends Service {
 
-  def live: ZLayer[Any, ExpectedFailure, CampaignRepository] = ???
+    override def topBannersByRevenue(campaignID: CampaignID, timeSlot: TimeSlot, number: TimeSlot): Task[List[Banner]] =
+      ZIO.fromFuture(implicit ec => dataRepository.topBannersByRevenue(campaignID, timeSlot, number))
 
-  def banners(campaignId: Long): ZIO[CampaignRepository, ExpectedFailure, Option[List[Banner]]] =
-    ZIO.accessM(_.get.banners(campaignId))
+    override def topBannersByClick(campaignID: CampaignID, timeSlot: TimeSlot, number: TimeSlot): Task[List[Banner]] =
+      ZIO.fromFuture(implicit ec => dataRepository.topBannersByClick(campaignID, timeSlot, number))
+
+    override def bannersByCampaign(campaignID: CampaignID, timeSlot: TimeSlot, number: TimeSlot): Task[List[Banner]] =
+      ZIO.fromFuture(implicit ec => dataRepository.bannersByCampaign(campaignID, timeSlot, number))
+  }
+
+  def live: ZLayer[Has[Config], Throwable, CampaignRepository] =
+    ZLayer.fromFunction { env =>
+      val config = env.get
+      val dataRepository: DataRepository = new DataRepository(Redisson.create(config))
+      new Live(dataRepository)
+    }
+
+  //Accessor Methods
+  def topBannersByRevenue(
+    campaignID: CampaignID,
+    timeSlot: TimeSlot,
+    number: Int): RIO[CampaignRepository, List[Banner]] =
+    ZIO.accessM(_.get.topBannersByRevenue(campaignID, timeSlot, number))
+
+  def topBannersByClick(
+    campaignID: CampaignID,
+    timeSlot: TimeSlot,
+    number: Int): RIO[CampaignRepository, List[Banner]] =
+    ZIO.accessM(_.get.topBannersByClick(campaignID, timeSlot, number))
+
+  def bannersByCampaign(
+    campaignID: CampaignID,
+    timeSlot: TimeSlot,
+    number: Int): RIO[CampaignRepository, List[Banner]] =
+    ZIO.accessM(_.get.bannersByCampaign(campaignID, timeSlot, number))
 }

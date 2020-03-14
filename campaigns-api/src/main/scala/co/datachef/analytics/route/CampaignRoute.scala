@@ -2,8 +2,8 @@ package co.datachef.analytics.route
 
 import co.datachef.analytics.implicits.Throwable._
 import co.datachef.analytics.model._
-import co.datachef.analytics.module.campaign.CampaignRepository._
 import co.datachef.shared.model.Banner
+import co.datachef.shared.module.CampaignRepository._
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
@@ -16,7 +16,7 @@ import tapir.server.{DecodeFailureHandling, ServerDefaults}
 import zio.interop.catz._
 import zio.logging.Logging
 import zio.{RIO, ZIO}
-import zio.logging._
+//import zio.logging._
 
 class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[R, *]] {
 
@@ -52,16 +52,17 @@ class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[
   }
 
   private def getBanners(campaignId: Long): ZIO[R, ExpectedFailure, List[Banner]] = {
-    for {
-      _ <- logDebug(s"id: $campaignId")
-      banners <- banners(campaignId)
-      u <- banners match {
-        case None => ZIO.fail(NotFoundFailure(s"Can not find a campaign by $campaignId"))
-        case Some(s) => ZIO.succeed(s)
-      }
-    } yield {
-      u
-    }
+    ZIO.fail(NotFoundFailure(s"Can not find a campaign by $campaignId"))
+//    for {
+//      _ <- logDebug(s"id: $campaignId")
+//      banners <- topBannersByRevenue(campaignId,1,10)
+//      u <- banners match {
+//        case None => ZIO.fail(NotFoundFailure(s"Can not find a campaign by $campaignId"))
+//        case Some(s) => ZIO.succeed(s)
+//      }
+//    } yield {
+//      u
+//    }
   }
 
   private def handleError[A](result: ZIO[R, ExpectedFailure, A]): ZIO[R, Throwable, Either[ErrorResponse, A]] = {

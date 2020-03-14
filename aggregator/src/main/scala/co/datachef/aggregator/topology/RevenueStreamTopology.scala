@@ -1,31 +1,28 @@
 package co.datachef.aggregator.topology
 
 import java.time.Duration
-import java.util
 
-import co.datachef.loader.model.{Click, Conversion, EnrichedConversion, Record}
-import co.datachef.loader.serde.JSONSerde
-import co.datachef.shared.model.{BannerID, CampaignID}
+import co.datachef.aggregator.{ClickDetailsNotFound, CombinedKey}
+import co.datachef.loader.model.{Click, Conversion, EnrichedConversion}
+import co.datachef.shared.repository.DataRepository
 import io.circe.generic.auto._
-import io.circe.{Decoder, Encoder}
-import org.apache.kafka.common.errors.SerializationException
-import org.apache.kafka.common.serialization.{Deserializer, Serde, Serializer}
 import org.apache.kafka.streams.kstream.TimeWindows
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.Serdes._
-import org.apache.kafka.streams.scala.kstream.{Consumed, Grouped, KStream, KTable}
 import org.apache.kafka.streams.scala.StreamsBuilder
+import org.apache.kafka.streams.scala.kstream.{Grouped, KStream, KTable}
 import zio.{UIO, ZIO}
 
-class RevenueStreamTopology(builder: StreamsBuilder) {
+class RevenueStreamTopology(builder: StreamsBuilder, dataRepository: DataRepository) {
   import RevenueStreamTopology._
 
   def build(): UIO[Unit] = ZIO.effectTotal {
+    val timeSlot = 1
     val conversions: KStream[String, Conversion] =
-      builder.stream[String, Conversion]("conversion-1")
+      builder.stream[String, Conversion](s"conversion-$timeSlot")
 
     val clicks: KTable[String, Click] =
-      builder.table[String, Click]("click-1")
+      builder.table[String, Click](s"click-$timeSlot")
 
     val joinFailed: (String, Either[ClickDetailsNotFound, EnrichedConversion]) => Boolean =
       (_, result: Either[ClickDetailsNotFound, EnrichedConversion]) => result.isLeft
@@ -49,15 +46,14 @@ class RevenueStreamTopology(builder: StreamsBuilder) {
 
     revenueAggregatorFork(0).map { (key, value) =>
       val ClickDetailsNotFound(conversion) = value.swap.toOption.get
-      println(s"Retry: $conversion")
       (key, conversion)
-    }.to("conversion-1")
+    }.to(s"conversion-$timeSlot")
 
     revenueAggregatorFork(1).map { (key, value) =>
       (key, value.toOption.get)
     }.groupBy {
       case (_, eConversion) => CombinedKey(eConversion.campaignID, eConversion.bannerID)
-    }.windowedBy(TimeWindows.of(Duration.ofSeconds(50)))
+    }.windowedBy(TimeWindows.of(Duration.ofSeconds(5)))
       .aggregate(0d) {
         case (_, enrichedConversion, revenue) =>
           revenue + enrichedConversion.revenue
@@ -66,42 +62,17 @@ class RevenueStreamTopology(builder: StreamsBuilder) {
       .map((windowedKey, revenue) => (windowedKey.key(), revenue))
       .foreach {
         case (CombinedKey(campaignId, bannerId), revenue) =>
-          println(s"revenue for campaign: $campaignId, banner: $bannerId = $revenue")
+          dataRepository.addRevenue(campaignId, bannerId, timeSlot, revenue)
+          ()
       }
   }
 }
 
 object RevenueStreamTopology {
-  sealed trait ExpectedError extends Product with Serializable
-  case class ClickDetailsNotFound(conversion: Conversion) extends ExpectedError
-  case class CombinedKey(campaignID: CampaignID, bannerID: BannerID)
 
-  implicit def jsonSerDeRecord[T <: Record: Encoder: Decoder]: JSONSerde[T] = new JSONSerde[T]()
-
-  implicit val combinedKeySerde: Serde[CombinedKey] with Serializer[CombinedKey] with Deserializer[CombinedKey] =
-    new Serde[CombinedKey] with Serializer[CombinedKey] with Deserializer[CombinedKey] {
-      override def configure(configs: util.Map[BannerID, _], isKey: Boolean): Unit = super.configure(configs, isKey)
-
-      override def serializer(): Serializer[CombinedKey] = this
-
-      override def deserializer(): Deserializer[CombinedKey] = this
-
-      override def serialize(topic: String, data: CombinedKey): Array[Byte] =
-        s"${data.campaignID}-${data.bannerID}".getBytes
-
-      override def deserialize(topic: String, data: Array[Byte]): CombinedKey = {
-        val input = data.map(_.toChar).mkString
-        input.split("-").toList match {
-          case campaignId :: bannerId :: Nil => CombinedKey(campaignId, bannerId)
-          case _ => throw new SerializationException(s"Failed to deserialize $input")
-        }
-      }
-    }
-
-  implicit val conversionConsumed: Consumed[String, Record] = Consumed.`with`[String, Record]
-
-  implicit val grouped: Grouped[CombinedKey, EnrichedConversion] =
+  implicit val groupedConversion: Grouped[CombinedKey, EnrichedConversion] =
     Grouped.`with`[CombinedKey, EnrichedConversion]
 
-  def apply(builder: StreamsBuilder): RevenueStreamTopology = new RevenueStreamTopology(builder)
+  def apply(builder: StreamsBuilder, dataRepository: DataRepository): RevenueStreamTopology =
+    new RevenueStreamTopology(builder, dataRepository)
 }
