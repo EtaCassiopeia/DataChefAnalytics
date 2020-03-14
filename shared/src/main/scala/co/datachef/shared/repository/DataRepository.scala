@@ -2,7 +2,7 @@ package co.datachef.shared.repository
 
 import java.lang
 
-import co.datachef.shared.model.{Banner, BannerID, CampaignID, ConversionID, Revenue, TimeSlot}
+import co.datachef.shared.model.{Banner, BannerID, CampaignID, ClickID, ConversionID, Revenue, TimeSlot}
 import org.redisson.api.{RBloomFilter, RScoredSortedSet, RSet, RedissonClient}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,7 +17,7 @@ class DataRepository(redissonClient: RedissonClient) {
     set.addAsync(bannerID).asScala
   }
 
-  def addRevenue(
+  def incRevenue(
     campaignID: CampaignID,
     bannerID: BannerID,
     timeSlot: TimeSlot,
@@ -27,7 +27,11 @@ class DataRepository(redissonClient: RedissonClient) {
     set.addScoreAsync(bannerID, revenue).asScala
   }
 
-  def addClick(campaignID: CampaignID, bannerID: BannerID, timeSlot: TimeSlot, count: Long): Future[lang.Double] = {
+  def incClickCount(
+    campaignID: CampaignID,
+    bannerID: BannerID,
+    timeSlot: TimeSlot,
+    count: Long): Future[lang.Double] = {
     val key = s"C-C$campaignID-TS$timeSlot"
     val set: RScoredSortedSet[String] = redissonClient.getScoredSortedSet(key)
     set.addScoreAsync(bannerID, count).asScala
@@ -71,8 +75,21 @@ class DataRepository(redissonClient: RedissonClient) {
   def isConversionExists(conversionID: ConversionID, timeSlot: TimeSlot): Boolean = {
     val key = s"CBF-TS$timeSlot"
     val conversionsBloomFilter: RBloomFilter[String] = redissonClient.getBloomFilter(key)
-    //TODO: Initialize Bloom filter params
     conversionsBloomFilter.tryInit(10000, 0.01)
     conversionsBloomFilter.contains(conversionID)
+  }
+
+  def addClick(clickID: ClickID, timeSlot: TimeSlot): Boolean = {
+    val key = s"ClBF-TS$timeSlot"
+    val conversionsBloomFilter: RBloomFilter[String] = redissonClient.getBloomFilter(key)
+    conversionsBloomFilter.tryInit(10000, 0.01)
+    conversionsBloomFilter.add(clickID)
+  }
+
+  def isClickExists(clickID: ClickID, timeSlot: TimeSlot): Boolean = {
+    val key = s"ClBF-TS$timeSlot"
+    val conversionsBloomFilter: RBloomFilter[String] = redissonClient.getBloomFilter(key)
+    conversionsBloomFilter.tryInit(10000, 0.01)
+    conversionsBloomFilter.contains(clickID)
   }
 }

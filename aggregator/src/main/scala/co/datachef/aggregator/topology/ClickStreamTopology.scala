@@ -20,7 +20,14 @@ class ClickStreamTopology(builder: StreamsBuilder, dataRepository: DataRepositor
     val clicks: KStream[String, Click] =
       builder.stream[String, Click](s"click-$timeSlot")
 
-    clicks.groupBy {
+    clicks.filter {
+      case (_, click) if dataRepository.isClickExists(click.clickId, timeSlot) => false
+      case _ => true
+    }.peek {
+      case (_, click) =>
+        dataRepository.addClick(click.clickId, timeSlot)
+        ()
+    }.groupBy {
       case (_, click) => CombinedKey(click.campaignId, click.bannerId)
     }.windowedBy(TimeWindows.of(Duration.ofSeconds(5)))
       .count()
@@ -28,7 +35,7 @@ class ClickStreamTopology(builder: StreamsBuilder, dataRepository: DataRepositor
       .map((windowedKey, count) => (windowedKey.key(), count))
       .foreach {
         case (CombinedKey(campaignId, bannerId), count) =>
-          dataRepository.addClick(campaignId, bannerId, timeSlot, count)
+          dataRepository.incClickCount(campaignId, bannerId, timeSlot, count)
           ()
       }
   }
