@@ -15,12 +15,12 @@ import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.Serdes._
 import org.apache.kafka.streams.scala.kstream.{Consumed, Grouped, KStream, KTable}
 import org.apache.kafka.streams.scala.StreamsBuilder
-import zio.UIO
+import zio.{UIO, ZIO}
 
 class RevenueStreamTopology(builder: StreamsBuilder) {
   import RevenueStreamTopology._
 
-  def build(): UIO[Unit] = UIO.succeed {
+  def build(): UIO[Unit] = ZIO.effectTotal {
     val conversions: KStream[String, Conversion] =
       builder.stream[String, Conversion]("conversion-1")
 
@@ -34,18 +34,17 @@ class RevenueStreamTopology(builder: StreamsBuilder) {
       (_, result: Either[ClickDetailsNotFound, EnrichedConversion]) => result.isRight
 
     val revenueAggregatorFork: Array[KStream[String, Either[ClickDetailsNotFound, EnrichedConversion]]] = conversions
-      .leftJoin(clicks)((conversion, click) => {
-        println("running")
-        if (click == null) Left(ClickDetailsNotFound(conversion))
-        else
-          Right(
-            EnrichedConversion(
-              conversion.conversionId,
-              click.clickId,
-              click.campaignId,
-              click.bannerId,
-              conversion.revenue))
-      })
+      .leftJoin(clicks)(
+        (conversion, click) =>
+          if (click == null) Left(ClickDetailsNotFound(conversion))
+          else
+            Right(
+              EnrichedConversion(
+                conversion.conversionId,
+                click.clickId,
+                click.campaignId,
+                click.bannerId,
+                conversion.revenue)))
       .branch(joinFailed, joinSucceed)
 
     revenueAggregatorFork(0).map { (key, value) =>

@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters._
 object Main extends App {
   type AppEnvironment = Console
 
-  def streamConfig(): UIO[Properties] = UIO.succeed {
+  def streamConfig(): UIO[Properties] = ZIO.effectTotal {
     import org.apache.kafka.streams.StreamsConfig
     import org.apache.kafka.clients.consumer.ConsumerConfig
 
@@ -36,21 +36,17 @@ object Main extends App {
       builder = new StreamsBuilder()
       _ <- RevenueStreamTopology(builder).build()
       p <- Promise.make[Nothing, String]
-      _ <- Managed
-        .make(Task {
-          new KafkaStreams(builder.build(), config)
-        })(s => UIO.succeed(s.close()))
-        .use { stream =>
-          Task {
-            stream.setStateListener((newState: KafkaStreams.State, _: KafkaStreams.State) => {
-              if (newState == State.ERROR) p.succeed("Finished")
-              ()
-            })
-            stream.start()
-          }
-        }
-      fiber <- p.await.flatMap(putStrLn(_)).fork
-      _ <- fiber.join
+      managedStream = Managed.makeEffect {
+        val stream = new KafkaStreams(builder.build(), config)
+        stream.setStateListener((newState: KafkaStreams.State, _: KafkaStreams.State) => {
+          if (newState == State.ERROR) p.succeed(s"Failed ${newState.toString}")
+          ()
+        })
+        stream
+      }(stream => ZIO.effect(stream.close()))
+      _ <- managedStream.use(stream => ZIO.effect(stream.start())).fork
+      waitForIt <- p.await.flatMap(putStrLn(_)).fork
+      _ <- waitForIt.join
     } yield ()
   }
 
