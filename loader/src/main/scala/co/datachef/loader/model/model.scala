@@ -23,9 +23,13 @@ object RowParser {
   }
 }
 
-sealed trait Record extends Product with Serializable
+sealed trait Record extends Product with Serializable {
+  def key: String
+}
 
-case class Impression(bannerId: BannerID, campaignId: CampaignID) extends Record
+case class Impression(bannerId: BannerID, campaignId: CampaignID) extends Record {
+  val key: String = s"$bannerId-$campaignId"
+}
 
 object Impression {
 
@@ -42,7 +46,9 @@ object Impression {
   }
 }
 
-case class Click(clickId: ClickID, bannerId: BannerID, campaignId: CampaignID) extends Record
+case class Click(clickId: ClickID, bannerId: BannerID, campaignId: CampaignID) extends Record {
+  val key: String = clickId
+}
 
 object Click {
 
@@ -59,7 +65,9 @@ object Click {
   }
 }
 
-case class Conversion(conversionId: ConversionID, clickId: ClickID, revenue: Revenue) extends Record
+case class Conversion(conversionId: ConversionID, clickId: ClickID, revenue: Revenue) extends Record {
+  val key: String = clickId
+}
 
 object Conversion {
 
@@ -77,20 +85,15 @@ object Conversion {
   }
 }
 
-//object GenericDerivation {
-//  implicit val encodeEvent: Encoder[RawRecord] = Encoder.instance {
-//    case impression @ Impression(_,_) => impression.asJson
-//    case conversion @ Conversion(_,_,_) => conversion.asJson
-//    case click @ Click(_,_,_) => click.asJson
-//  }
-//
-//  implicit val decodeEvent: Decoder[RawRecord] =
-//    List[Decoder[RawRecord]](
-//      Decoder[Impression].widen,
-//      Decoder[Conversion].widen,
-//      Decoder[Click].widen,
-//    ).reduceLeft(_ or _)
-//}
+case class EnrichedConversion(
+  conversionId: ConversionID,
+  clickId: ClickID,
+  campaignID: CampaignID,
+  bannerID: BannerID,
+  revenue: Revenue)
+    extends Record {
+  val key: String = clickId
+}
 
 final case class FileName(value: String) extends AnyVal
 

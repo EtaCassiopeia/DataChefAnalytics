@@ -8,7 +8,6 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, RecordM
 import org.apache.kafka.common.serialization.StringSerializer
 import zio._
 import zio.blocking.{Blocking, _}
-import io.circe.generic.auto._
 
 case class ProducerSettings(private val broker: String) {
 
@@ -60,13 +59,11 @@ object Producer {
         .accessM[Has[ProducerSettings]] { env =>
           val settings = env.get[ProducerSettings]
           ZIO {
-            import co.datachef.loader.serde.ShapesDerivation._
-
             val props = settings.props
             val producer = new KafkaProducer[String, Record](
               props,
               new StringSerializer(),
-              new JSONSerde[Record]()
+              JSONSerde()
             )
             new Live(producer)
           }

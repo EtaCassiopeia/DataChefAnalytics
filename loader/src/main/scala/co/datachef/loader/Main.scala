@@ -6,9 +6,6 @@ import co.datachef.loader.model.config.ApplicationConfig
 import co.datachef.loader.model.{FileName, RowParser, TimeSlot}
 import co.datachef.loader.module.Producer.{produce, Producer}
 import co.datachef.loader.module.{Producer, ProducerSettings}
-//import io.circe.generic.extras.auto._
-//import io.circe.generic.extras.Configuration
-//import io.circe.syntax._
 import org.apache.kafka.clients.producer.ProducerRecord
 import zio.blocking.Blocking
 import zio.clock.Clock
@@ -43,11 +40,12 @@ object Main extends App {
           .transduce(Sink.utf8DecodeChunk)
           .transduce(Sink.splitLines)
           .flatMap(c => Stream.fromChunk(c))
+          .drop(1)
           .map(rowParser.fromString)
           .collect {
-            case Some(record) => record
+            case Some(record) => new ProducerRecord(topicName, record.key, record)
           }
-          .foreach(record => produce(new ProducerRecord(topicName, record)))
+          .foreach(produce)
       }
       _ <- loader.provideLayer(
         Clock.live ++ Console.live ++ Blocking.live ++ (ZLayer.succeed(

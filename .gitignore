@@ -6,10 +6,8 @@
 target/
 project/boot/
 project/plugins/project/
-.history
-.cache
-.lib/
 
 ### Scala
 *.class
 *.log
+package-info.java

@@ -23,3 +23,13 @@ class JSONSerde[T <: Record: Encoder: Decoder] extends Serializer[T] with Deseri
 
   override def deserializer(): Deserializer[T] = this
 }
+
+object JSONSerde {
+  import co.datachef.loader.serde.ShapesDerivation._
+
+  import io.circe.generic.extras.auto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults.withDiscriminator("type")
+
+  def apply(): JSONSerde[Record] = new JSONSerde[Record]()
+}

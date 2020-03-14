@@ -14,7 +14,7 @@ object Dependencies {
     val tapir = "0.11.9"
     val scalaTest = "3.0.8"
     val kindProjector = "0.11.0"
-    val kafka = "2.4.0"
+    val kafka = "2.4.1"
     val zioConfig = "1.0.0-RC12"
     val redisson = "3.12.3"
   }
@@ -35,7 +35,8 @@ object Dependencies {
     val circeModules: Seq[ModuleID] = Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-parser",
-      "io.circe" %% "circe-generic"
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-generic-extras"
     ).map(_ % Versions.circe)
 
     val cirisModules: Seq[ModuleID] = Seq(
@@ -55,8 +56,10 @@ object Dependencies {
       "com.softwaremill.tapir" %% "tapir-json-circe"
     ).map(_ % Versions.tapir)
 
-    val kafkaClient = "org.apache.kafka" % "kafka-clients" % Versions.kafka
-    val redisson = "org.redisson"        % "redisson"      % Versions.redisson
+    val kafkaClient = "org.apache.kafka"                           % "kafka-clients" % Versions.kafka
+    val kafkaStreams = "org.apache.kafka" %% "kafka-streams-scala" % Versions.kafka
+
+    val redisson = "org.redisson" % "redisson" % Versions.redisson
 
     val zioLoggingSlf4j = "dev.zio" %% "zio-logging-slf4j"             % Versions.zioLogging
     val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging

@@ -44,7 +44,7 @@ lazy val aggregator = project
   .settings(
     name := "aggregator",
     libraryDependencies ++= Seq(
-      kafkaClient
+      kafkaStreams
     ) ++ logging
   )
   .dependsOn(shared,loader)
