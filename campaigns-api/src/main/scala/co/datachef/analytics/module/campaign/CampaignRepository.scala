@@ -47,7 +47,7 @@ object CampaignRepository {
     number: Int): RIO[CampaignRepository, List[Banner]] =
     ZIO.accessM(_.get.topBannersByClick(campaignID, timeSlot, number))
 
-  def bannersByCampaign(
+  def randomBannersByCampaign(
     campaignID: CampaignID,
     timeSlot: TimeSlot,
     number: Int): RIO[CampaignRepository, List[Banner]] =
