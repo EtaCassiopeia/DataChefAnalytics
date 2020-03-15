@@ -43,8 +43,6 @@ services:
     environment:
       KAFKA_BROKER_ID: ignored
       KAFKA_ZOOKEEPER_CONNECT: ignored
-    networks:
-      - default
 
   redis:
     image: redis:latest
@@ -61,13 +59,13 @@ services:
     hostname: api
     container_name: api
     environment:
-      SERVER_HOST: localhost
-      SERVER_PORT: 5566
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
       KAFKA_BROKERS: kafka:9092
       REDIS_SERVER: redis://redis:6379
       LOG_LEVEL: INFO
     ports:
-      - "5566-5566"
+      - "8080:8080"
     depends_on:
       - kafka
       - redis
