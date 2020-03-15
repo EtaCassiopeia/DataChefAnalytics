@@ -2,10 +2,11 @@ package co.datachef.analytics
 
 import scala.util.Try
 import cats.effect.ExitCode
-import co.datachef.analytics.model.config.ApplicationConfig
+import co.datachef.analytics.model.config.ServerConfig
+import co.datachef.analytics.module.CampaignRepository
+import co.datachef.analytics.module.CampaignRepository._
 import co.datachef.analytics.route.CampaignRoute
-import co.datachef.shared.module.CampaignRepository
-import co.datachef.shared.module.CampaignRepository._
+import co.datachef.shared.model.config.RedisConfig
 import org.http4s.implicits._
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -32,25 +33,23 @@ object Main extends App {
   private val finalHttpApp =
     Logger.httpApp[ZIO[AppEnvironment, Throwable, *]](logHeaders = true, logBody = true)(httpApp)
 
-  //TODO unify configs
-  val redissonConfig: UIO[Config] = ZIO.succeed {
-    val config = new Config()
-    config.useSingleServer.setAddress("redis://127.0.0.1:6379")
-    config
-  }
-
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
     (for {
-      applicationConfig <- ZIO.fromTry(Try(ApplicationConfig.getConfig))
+      serverConfig <- ZIO.fromTry(Try(ServerConfig.getConfig))
+      rConfig <- ZIO.fromTry(Try {
+        val server = RedisConfig.getConfig.server
+        val config = new Config()
+        config.useSingleServer.setAddress(server)
+        config
+      })
       server = ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
         BlazeServerBuilder[ZIO[AppEnvironment, Throwable, *]]
-          .bindHttp(applicationConfig.server.port, applicationConfig.server.host.getHostAddress)
+          .bindHttp(serverConfig.port, serverConfig.host.getHostAddress)
           .withHttpApp(finalHttpApp)
           .serve
           .compile[ZIO[AppEnvironment, Throwable, *], ZIO[AppEnvironment, Throwable, *], ExitCode]
           .drain
       }
-      rConfig <- redissonConfig
       campaignRepo = ZLayer.succeed(rConfig) >>> CampaignRepository.live
       _ <- server.provideLayer {
         Clock.live ++ Console.live ++ campaignRepo ++ Logging.console((_, logEntry) => logEntry)

@@ -2,8 +2,8 @@ package co.datachef.loader.module
 
 import java.util.Properties
 
-import co.datachef.loader.model.Record
-import co.datachef.loader.serde.JSONSerde
+import co.datachef.shared.model.Record
+import co.datachef.shared.serde.JSONSerde
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.StringSerializer
 import zio._

@@ -1,4 +1,4 @@
-package co.datachef.loader.serde
+package co.datachef.shared.serde
 
 import io.circe.{Decoder, Encoder}
 

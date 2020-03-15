@@ -1,8 +1,6 @@
-package co.datachef.loader.model
+package co.datachef.shared.model
 
 import cats.implicits._
-import co.datachef.shared.model._
-
 import scala.util.Try
 
 sealed trait RowParser[+T] {
@@ -16,10 +14,10 @@ sealed trait RowParser[+T] {
 object RowParser {
   def apply[T <: Record: RowParser]: RowParser[T] = implicitly[RowParser[T]]
 
-  def fromFileName(fileName: FileName): RowParser[Record] = fileName match {
-    case FileName(value) if value.startsWith("clicks") => RowParser[Click]
-    case FileName(value) if value.startsWith("impressions") => RowParser[Impression]
-    case FileName(value) if value.startsWith("conversions") => RowParser[Conversion]
+  def fromFileName(fileName: FileNameVal): RowParser[Record] = fileName match {
+    case FileNameVal(value) if value.startsWith("clicks") => RowParser[Click]
+    case FileNameVal(value) if value.startsWith("impressions") => RowParser[Impression]
+    case FileNameVal(value) if value.startsWith("conversions") => RowParser[Conversion]
   }
 }
 
@@ -95,6 +93,7 @@ case class EnrichedConversion(
   val key: String = clickId
 }
 
-final case class FileName(value: String) extends AnyVal
+final case class Banner(bannerId: BannerID, image: String)
 
-final case class TimeSlot(value: String) extends AnyVal
+final case class FileNameVal(value: String) extends AnyVal
+final case class TimeSlotVal(value: String) extends AnyVal

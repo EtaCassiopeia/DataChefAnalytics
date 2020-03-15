@@ -1,6 +1,6 @@
 package co.datachef.aggregator.topology
 
-import co.datachef.loader.model.Impression
+import co.datachef.shared.model.Impression
 import co.datachef.shared.repository.DataRepository
 import io.circe.generic.auto._
 import org.apache.kafka.streams.scala.ImplicitConversions._
@@ -12,14 +12,15 @@ import zio.{UIO, ZIO}
 class ImpressionStreamTopology(builder: StreamsBuilder, dataRepository: DataRepository) {
 
   def build(): UIO[Unit] = ZIO.effectTotal {
-    val timeSlot = 1
-    val impressions: KStream[String, Impression] =
-      builder.stream[String, Impression](s"impression-$timeSlot")
+    (1 to 4).foreach { timeSlot =>
+      val impressions: KStream[String, Impression] =
+        builder.stream[String, Impression](s"impression-$timeSlot")
 
-    impressions.foreach {
-      case (_, impression) =>
-        dataRepository.addImpression(impression.campaignId, impression.bannerId, timeSlot)
-        ()
+      impressions.foreach {
+        case (_, impression) =>
+          dataRepository.addImpression(impression.campaignId, impression.bannerId, timeSlot)
+          ()
+      }
     }
   }
 }

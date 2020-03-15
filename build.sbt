@@ -10,8 +10,9 @@ lazy val shared = project
     libraryDependencies ++= Seq(
       zio,
       redisson,
-      scalatest
-    ) ++ logging
+      scalatest,
+      kafkaClient
+    ) ++ cirisModules ++ circeModules ++ logging
   )
 
 lazy val `campaigns-api` = project
@@ -21,10 +22,14 @@ lazy val `campaigns-api` = project
     name := "campaigns-api",
     libraryDependencies ++= Seq(
       zioInteropCats
-    ) ++ http4sModules ++ circeModules ++ cirisModules ++ tapirModules,
-    addCompilerPlugin(kindProjectorPlugin cross CrossVersion.full)
+    ) ++ http4sModules ++ tapirModules,
+    addCompilerPlugin(kindProjectorPlugin cross CrossVersion.full),
+    mainClass in Compile := Some("co.datachef.analytics.Main"),
+    dockerExposedPorts := Seq(8080)
   )
   .dependsOn(shared)
+.enablePlugins(JavaAppPackaging)
+.enablePlugins(DockerPlugin)
 
 lazy val loader = project
   .in(file("loader"))
@@ -32,11 +37,11 @@ lazy val loader = project
   .settings(
     name := "loader",
     libraryDependencies ++= Seq(
-      zioStreams,
-      kafkaClient
-    ) ++ circeModules ++ cirisModules
+      zioStreams
+    ) ++ circeModules
   )
   .dependsOn(shared)
+  .enablePlugins(JavaAppPackaging)
 
 lazy val aggregator = project
   .in(file("aggregator"))
@@ -45,9 +50,12 @@ lazy val aggregator = project
     name := "aggregator",
     libraryDependencies ++= Seq(
       kafkaStreams
-    ) ++ logging
+    ) ++ logging,
+    mainClass in Compile := Some("co.datachef.aggregator.Main"),
   )
-  .dependsOn(shared,loader)
+  .dependsOn(shared)
+  .enablePlugins(JavaAppPackaging)
+  .enablePlugins(DockerPlugin)
 
 lazy val root = (project in file("."))
   .aggregate(shared, loader, aggregator, `campaigns-api`)

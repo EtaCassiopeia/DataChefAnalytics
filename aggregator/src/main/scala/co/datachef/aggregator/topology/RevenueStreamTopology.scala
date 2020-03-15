@@ -3,7 +3,7 @@ package co.datachef.aggregator.topology
 import java.time.Duration
 
 import co.datachef.aggregator.{ClickDetailsNotFound, CombinedKey}
-import co.datachef.loader.model.{Click, Conversion, EnrichedConversion}
+import co.datachef.shared.model.{Click, Conversion, EnrichedConversion}
 import co.datachef.shared.repository.DataRepository
 import io.circe.generic.auto._
 import org.apache.kafka.streams.kstream.TimeWindows
@@ -17,61 +17,62 @@ class RevenueStreamTopology(builder: StreamsBuilder, dataRepository: DataReposit
   import RevenueStreamTopology._
 
   def build(): UIO[Unit] = ZIO.effectTotal {
-    val timeSlot = 1
-    val conversions: KStream[String, Conversion] =
-      builder.stream[String, Conversion](s"conversion-$timeSlot")
+    (1 to 4).foreach { timeSlot =>
+      val conversions: KStream[String, Conversion] =
+        builder.stream[String, Conversion](s"conversion-$timeSlot")
 
-    val clicks: KTable[String, Click] =
-      builder.table[String, Click](s"click-$timeSlot")
+      val clicks: KTable[String, Click] =
+        builder.table[String, Click](s"click-$timeSlot")
 
-    val joinFailed: (String, Either[ClickDetailsNotFound, EnrichedConversion]) => Boolean =
-      (_, result: Either[ClickDetailsNotFound, EnrichedConversion]) => result.isLeft
+      val joinFailed: (String, Either[ClickDetailsNotFound, EnrichedConversion]) => Boolean =
+        (_, result: Either[ClickDetailsNotFound, EnrichedConversion]) => result.isLeft
 
-    val joinSucceed: (String, Either[ClickDetailsNotFound, EnrichedConversion]) => Boolean =
-      (_, result: Either[ClickDetailsNotFound, EnrichedConversion]) => result.isRight
+      val joinSucceed: (String, Either[ClickDetailsNotFound, EnrichedConversion]) => Boolean =
+        (_, result: Either[ClickDetailsNotFound, EnrichedConversion]) => result.isRight
 
-    val revenueAggregatorFork: Array[KStream[String, Either[ClickDetailsNotFound, EnrichedConversion]]] =
-      conversions.filter {
-        case (_, conversion) if dataRepository.isConversionExists(conversion.conversionId, timeSlot) => false
-        case _ => true
-      }.leftJoin(clicks)(
-          (conversion, click) =>
-            if (click == null) Left(ClickDetailsNotFound(conversion))
-            else
-              Right(
-                EnrichedConversion(
-                  conversion.conversionId,
-                  click.clickId,
-                  click.campaignId,
-                  click.bannerId,
-                  conversion.revenue)))
-        .branch(joinFailed, joinSucceed)
+      val revenueAggregatorFork: Array[KStream[String, Either[ClickDetailsNotFound, EnrichedConversion]]] =
+        conversions.filter {
+          case (_, conversion) if dataRepository.isConversionExists(conversion.conversionId, timeSlot) => false
+          case _ => true
+        }.leftJoin(clicks)(
+            (conversion, click) =>
+              if (click == null) Left(ClickDetailsNotFound(conversion))
+              else
+                Right(
+                  EnrichedConversion(
+                    conversion.conversionId,
+                    click.clickId,
+                    click.campaignId,
+                    click.bannerId,
+                    conversion.revenue)))
+          .branch(joinFailed, joinSucceed)
 
-    revenueAggregatorFork(0).map { (key, value) =>
-      val ClickDetailsNotFound(conversion) = value.swap.toOption.get
-      (key, conversion)
-    }.to(s"conversion-$timeSlot")
+      revenueAggregatorFork(0).map { (key, value) =>
+        val ClickDetailsNotFound(conversion) = value.swap.toOption.get
+        (key, conversion)
+      }.to(s"conversion-$timeSlot")
 
-    revenueAggregatorFork(1).map { (key, value) =>
-      (key, value.toOption.get)
-    }.peek {
-      case (_, eConversion) =>
-        dataRepository.addConversion(eConversion.conversionId, timeSlot)
-        ()
-    }.groupBy {
-      case (_, eConversion) => CombinedKey(eConversion.campaignID, eConversion.bannerID)
-    }.windowedBy(TimeWindows.of(Duration.ofSeconds(5)))
-      .aggregate(0d) {
-        case (_, enrichedConversion, revenue) =>
-          revenue + enrichedConversion.revenue
-      }
-      .toStream
-      .map((windowedKey, revenue) => (windowedKey.key(), revenue))
-      .foreach {
-        case (CombinedKey(campaignId, bannerId), revenue) =>
-          dataRepository.incRevenue(campaignId, bannerId, timeSlot, revenue)
+      revenueAggregatorFork(1).map { (key, value) =>
+        (key, value.toOption.get)
+      }.peek {
+        case (_, eConversion) =>
+          dataRepository.addConversion(eConversion.conversionId, timeSlot)
           ()
-      }
+      }.groupBy {
+        case (_, eConversion) => CombinedKey(eConversion.campaignID, eConversion.bannerID)
+      }.windowedBy(TimeWindows.of(Duration.ofSeconds(5)))
+        .aggregate(0d) {
+          case (_, enrichedConversion, revenue) =>
+            revenue + enrichedConversion.revenue
+        }
+        .toStream
+        .map((windowedKey, revenue) => (windowedKey.key(), revenue))
+        .foreach {
+          case (CombinedKey(campaignId, bannerId), revenue) =>
+            dataRepository.incRevenue(campaignId, bannerId, timeSlot, revenue)
+            ()
+        }
+    }
   }
 }
 

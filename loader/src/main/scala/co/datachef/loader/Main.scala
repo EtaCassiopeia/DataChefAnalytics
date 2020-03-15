@@ -2,10 +2,10 @@ package co.datachef.loader
 
 import java.nio.file.{Files, Paths}
 
-import co.datachef.loader.model.config.ApplicationConfig
-import co.datachef.loader.model.{FileName, RowParser, TimeSlot}
+import co.datachef.shared.model.{FileNameVal, RowParser, TimeSlotVal}
 import co.datachef.loader.module.Producer.{produce, Producer}
 import co.datachef.loader.module.{Producer, ProducerSettings}
+import co.datachef.shared.model.config.KafkaConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import zio.blocking.Blocking
 import zio.clock.Clock
@@ -20,19 +20,20 @@ object Main extends App {
 
   val fileNamePattern: Regex = """.*/(\d)/(.*.csv)""".r
 
-  def program(filePath: String): ZIO[Any, Throwable, Unit] = {
+  def program(filePath: String): ZIO[Console, Throwable, Unit] = {
     import zio.stream._
 
     for {
       fileDetails <- ZIO.fromTry(Try {
         val fileNamePattern(timeSlot, fileName) = filePath
-        (FileName(fileName), TimeSlot(timeSlot))
+        (FileNameVal(fileName), TimeSlotVal(timeSlot))
       })
       (fileName, timeSlot) = fileDetails
       rowParser = RowParser.fromFileName(fileName)
       topicName = s"${rowParser.recordType}-${timeSlot.value}"
-      applicationConfig <- ZIO.fromTry(Try(ApplicationConfig.getConfig))
+      kafkaConfig <- ZIO.fromTry(Try(KafkaConfig.getConfig))
       inputStream <- IO(Files.newInputStream(Paths.get(filePath)))
+      _ <- putStrLn(s"Loading file: $filePath")
       loader = ZIO.runtime[AppEnvironment].flatMap { _ =>
         Stream
           .fromInputStream(inputStream)
@@ -48,8 +49,8 @@ object Main extends App {
           .foreach(produce)
       }
       _ <- loader.provideLayer(
-        Clock.live ++ Console.live ++ Blocking.live ++ (ZLayer.succeed(
-          ProducerSettings(applicationConfig.kafkaConfig.brokers)) >>> Producer.live()))
+        Clock.live ++ Console.live ++ Blocking.live ++ (ZLayer
+          .succeed(ProducerSettings(kafkaConfig.brokers)) >>> Producer.live()))
     } yield ()
   }
 

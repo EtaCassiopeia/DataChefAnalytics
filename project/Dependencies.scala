@@ -5,7 +5,7 @@ object Dependencies {
   object Versions {
     val zio = "1.0.0-RC18-2"
     val zioInteropCats = "2.0.0.0-RC12"
-    val zioLogging = "0.2.3"
+    val zioLogging = "0.2.4"
     val http4s = "0.21.0-M5"
     val circe = "0.13.0"
     val scalaLogging = "3.9.2"

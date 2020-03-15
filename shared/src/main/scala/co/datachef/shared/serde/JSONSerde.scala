@@ -1,8 +1,8 @@
-package co.datachef.loader.serde
+package co.datachef.shared.serde
 
 import java.util
 
-import co.datachef.loader.model.Record
+import co.datachef.shared.model.Record
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import org.apache.kafka.common.serialization.{Deserializer, Serde, Serializer}
@@ -25,8 +25,6 @@ class JSONSerde[T <: Record: Encoder: Decoder] extends Serializer[T] with Deseri
 }
 
 object JSONSerde {
-  import co.datachef.loader.serde.ShapesDerivation._
-
   import io.circe.generic.extras.auto._
   import io.circe.generic.extras.Configuration
   implicit val customConfig: Configuration = Configuration.default.withDefaults.withDiscriminator("type")

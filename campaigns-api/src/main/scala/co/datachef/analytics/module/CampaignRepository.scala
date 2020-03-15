@@ -1,6 +1,6 @@
-package co.datachef.shared.module
+package co.datachef.analytics.module
 
-import co.datachef.shared.model._
+import co.datachef.shared.model.{Banner, CampaignID, TimeSlot}
 import co.datachef.shared.repository.DataRepository
 import org.redisson.Redisson
 import org.redisson.config.Config

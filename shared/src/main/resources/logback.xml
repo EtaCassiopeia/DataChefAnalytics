@@ -5,7 +5,7 @@
             </Pattern>
         </layout>
     </appender>
-    <root level="${LOG_LEVEL:-info}">
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

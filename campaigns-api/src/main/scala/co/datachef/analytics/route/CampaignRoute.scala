@@ -5,7 +5,7 @@ import java.util.Calendar
 import co.datachef.analytics.implicits.Throwable._
 import co.datachef.analytics.model._
 import co.datachef.shared.model.Banner
-import co.datachef.shared.module.CampaignRepository._
+import co.datachef.analytics.module.CampaignRepository._
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
@@ -72,12 +72,15 @@ class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[
       // X in range(5,10) : Show the Top x banners based on revenue within that campaign
       topProfitableBanners <- topBannersByRevenue(campaignId, timeSlot, 10)
       x = topProfitableBanners.size
+      _ <- logDebug(s"X: $x")
+      _ <- logDebug(s"topProfitableBanners: $topProfitableBanners")
       // X in range(1,5) : Your collection of banners should consists of 5 banners, containing:
       //      The top x banners based on revenue within that campaign
       //      Banners with the most clicks within that campaign to make up a collection of 5 unique banners.
       topClickedBanners <- if (x >= 1 && x <= 5)
         topBannersByClick(campaignId, timeSlot, 10 - x)
       else emptyBannerList
+      _ <- logDebug(s"topClickedBanners: $topClickedBanners")
       // X == 0 : Show the top­5 banners based on clicks.If the amount of banners with clicks are less than 5 within that campaign,
       // then you should add random banners to make up a collection of 5 unique banners.
       topRandomBanners <- if (x == 0) for {
@@ -86,6 +89,7 @@ class CampaignRoute[R <: CampaignRepository with Logging] extends Http4sDsl[RIO[
         else emptyBannerList
       } yield tcb ++ rnd
       else emptyBannerList
+      _ <- logDebug(s"topRandomBanners: $topRandomBanners")
     } yield Random.shuffle(topProfitableBanners ++ topClickedBanners ++ topRandomBanners)
   }
 

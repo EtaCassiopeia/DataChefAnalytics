@@ -11,10 +11,10 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
-  broker:
+  kafka:
     image: confluentinc/cp-server:5.4.1
-    hostname: broker
-    container_name: broker
+    hostname: kafka
+    container_name: kafka
     depends_on:
       - zookeeper
     ports:
@@ -23,21 +23,63 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
-      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
-      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
-      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
-      CONFLUENT_METRICS_ENABLE: 'true'
-      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
+      CONFLUENT_METRICS_ENABLE: 'false'
+
+  kafka-create-topics:
+    image: confluentinc/cp-server:5.4.1
+    depends_on:
+      - kafka
+    command: |
+      bash -c 'echo Waiting for Kafka to be ready... && \
+      cub kafka-ready -b kafka:29092 1 300 && \
+      for i in {1..4}; do kafka-topics --create --topic 'click-$$i' --partitions 1 --replication-factor 1 --if-not-exists --zookeeper zookeeper:2181; done && \
+      for i in {1..4}; do kafka-topics --create --topic 'impression-$$i' --partitions 1 --replication-factor 1 --if-not-exists --zookeeper zookeeper:2181; done && \
+      for i in {1..4}; do kafka-topics --create --topic 'conversion-$$i' --partitions 1 --replication-factor 1 --if-not-exists --zookeeper zookeeper:2181; done && \
+      sleep 5 && echo Topics have been created!'
+    environment:
+      KAFKA_BROKER_ID: ignored
+      KAFKA_ZOOKEEPER_CONNECT: ignored
+    networks:
+      - default
 
   redis:
     image: redis:latest
+    hostname: redis
+    container_name: redis
     ports:
-      - 6379:6379
+      - "6379:6379"
     volumes:
       - ./config/redis.conf:/redis.conf
     command: [ "redis-server", "/redis.conf" ]
+
+  api:
+    image: campaigns-api:0.1.0-SNAPSHOT
+    hostname: api
+    container_name: api
+    environment:
+      SERVER_HOST: localhost
+      SERVER_PORT: 5566
+      KAFKA_BROKERS: kafka:9092
+      REDIS_SERVER: redis://redis:6379
+      LOG_LEVEL: INFO
+    ports:
+      - "5566-5566"
+    depends_on:
+      - kafka
+      - redis
+
+  aggregator:
+    image: aggregator:0.1.0-SNAPSHOT
+    container_name: aggregator
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      REDIS_SERVER: redis://redis:6379
+      LOG_LEVEL: INFO
+    depends_on:
+      - kafka
+      - redis
+

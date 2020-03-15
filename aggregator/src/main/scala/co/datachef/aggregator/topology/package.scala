@@ -2,8 +2,8 @@ package co.datachef.aggregator
 
 import java.util
 
-import co.datachef.loader.model.{Conversion, Record}
-import co.datachef.loader.serde.JSONSerde
+import co.datachef.shared.model.{Conversion, Record}
+import co.datachef.shared.serde.JSONSerde
 import co.datachef.shared.model.{BannerID, CampaignID}
 import io.circe.generic.auto._
 import io.circe.{Decoder, Encoder}
