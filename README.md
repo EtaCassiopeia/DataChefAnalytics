@@ -14,7 +14,8 @@ Loader is a simple service that could be run as a Lambda function. It is respons
  
 ### Aggregator
 This application is designed to be highly available and fast. Aggregator service is the heart of the system which aggregates and stores the data in a format that is very fast to read.
-
+This component doesn't rely on the order of the data it reads from Kafka topics. It means even if the corresponding record required to fulfill the join operation is missing, Using a built-in retry mechanism it is able to return back the record to the topic and retry to process it later.
+ 
 ### Data model
 In order to get the list of most profitable banners or most viewed ones, the aggregated data are stored in Redis using the following data model:
 
@@ -23,6 +24,9 @@ Key | filed | value
 R-C<**campaign-id**>-<**time-slot**>* | <**banner-id**> | *revenue*
 C-C<**campaign-id**>-<**time-slot**>* | <**banner-id**> | *count*
 I-C<**campaign-id**>-<**time-slot**>* | - | Set[<**banner-id**>] 
+
+### Campaign-API
+Campaign-API exposes a single endpoint to get the list of the most profitable or viewed banners.
 
 # Setup
 
