@@ -53,7 +53,7 @@ curl -X GET "localhost:8080/campaigns/19" -H "accept: application/json"
 ```
 
 # Performance
-DataChefAnalytics is able to handle more than 600 ops (> 37K requests per minute) on a single node installation. Bear in mind that the application is designed to be scalable. 
+DataChefAnalytics is able to handle more than 800 ops (~ 50K requests per minute) on a single node installation. Bear in mind that the application is designed to be scalable. 
 It means by adding extra nodes and using clustered instances of Kafka and Redis it can handle even more load.
 
 ![LoadTest](images/load-test.png "Load Test")
